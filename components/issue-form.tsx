@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface IssueFormProps {
   equipment: Equipment[]
@@ -21,6 +21,9 @@ interface IssueFormProps {
 
 export function IssueForm({ equipment, userId, studioId, userRole }: IssueFormProps) {
   const [equipmentId, setEquipmentId] = useState("")
+  const [productCode, setProductCode] = useState("")
+  const [useCodeLookup, setUseCodeLookup] = useState(false)
+  const [codeLookupEquipment, setCodeLookupEquipment] = useState<Equipment | null>(null)
   const [personName, setPersonName] = useState("")
   const [personContact, setPersonContact] = useState("")
   const [quantityIssued, setQuantityIssued] = useState("1")
@@ -32,8 +35,53 @@ export function IssueForm({ equipment, userId, studioId, userRole }: IssueFormPr
   const router = useRouter()
   const supabase = createClient()
 
-  // Get available quantity for selected equipment
-  const selectedEquipment = equipment.find((e) => e.id === equipmentId)
+  // Handle code lookup with useEffect
+  useEffect(() => {
+    const lookupCode = async () => {
+      if (!useCodeLookup || !productCode.trim()) {
+        setCodeLookupEquipment(null)
+        if (!useCodeLookup) {
+          setEquipmentId("")
+        }
+        return
+      }
+
+      const { data, error: lookupError } = await supabase
+        .from("equipment")
+        .select("*")
+        .eq("studio_id", studioId)
+        .eq("code", productCode.trim())
+        .eq("status", "available")
+        .gt("quantity", 0)
+        .single()
+
+      if (lookupError || !data) {
+        setCodeLookupEquipment(null)
+        setEquipmentId("")
+        if (productCode.trim()) {
+          setError(`No equipment found with code: ${productCode.trim()}`)
+        } else {
+          setError(null)
+        }
+        return
+      }
+
+      setCodeLookupEquipment(data as Equipment)
+      setEquipmentId(data.id)
+      setError(null)
+    }
+
+    // Debounce the lookup
+    const timeoutId = setTimeout(() => {
+      lookupCode()
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productCode, useCodeLookup, studioId])
+
+  // Get available quantity for selected equipment (either from dropdown or code lookup)
+  const selectedEquipment = codeLookupEquipment || equipment.find((e) => e.id === equipmentId)
   const availableQuantity = selectedEquipment?.quantity || 0
 
   const handleAddToCart = (e: React.FormEvent) => {
@@ -50,6 +98,8 @@ export function IssueForm({ equipment, userId, studioId, userRole }: IssueFormPr
     }
     setCart([...cart, { equipmentId, name: selectedEquipment.name, serial: selectedEquipment.serial_number || null, quantity: qty, max: availableQuantity }]);
     setEquipmentId("");
+    setProductCode("");
+    setCodeLookupEquipment(null);
     setQuantityIssued("1");
     setError(null);
   }
@@ -104,28 +154,131 @@ export function IssueForm({ equipment, userId, studioId, userRole }: IssueFormPr
           <CardTitle>Issue Equipment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="equipment">Equipment *</Label>
-            <Select value={equipmentId} onValueChange={setEquipmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select equipment" />
-              </SelectTrigger>
-              <SelectContent>
-                {equipment.length === 0 ? (
-                  <div className="p-2 text-sm text-muted-foreground">No available equipment</div>
-                ) : (
-                  equipment.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name} {item.serial_number && `(${item.serial_number})`} (Available: {item.quantity})
-                    </SelectItem>
-                  ))
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant={!useCodeLookup ? "default" : "outline"}
+                onClick={() => {
+                  setUseCodeLookup(false)
+                  setProductCode("")
+                  setCodeLookupEquipment(null)
+                  setEquipmentId("")
+                }}
+              >
+                Select Equipment
+              </Button>
+              <Button
+                type="button"
+                variant={useCodeLookup ? "default" : "outline"}
+                onClick={() => {
+                  setUseCodeLookup(true)
+                  setEquipmentId("")
+                }}
+              >
+                Enter Code
+              </Button>
+            </div>
+
+            {!useCodeLookup ? (
+              <div className="space-y-2">
+                <Label htmlFor="equipment">Equipment *</Label>
+                <Select value={equipmentId} onValueChange={setEquipmentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select equipment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {equipment.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">No available equipment</div>
+                    ) : (
+                      equipment.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          {item.name} {item.serial_number && `(${item.serial_number})`} (Available: {item.quantity})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {selectedEquipment && (
+                  <p className="text-xs text-muted-foreground">
+                    Available quantity: {availableQuantity}
+                  </p>
                 )}
-              </SelectContent>
-            </Select>
-            {selectedEquipment && (
-              <p className="text-xs text-muted-foreground">
-                Available quantity: {availableQuantity}
-              </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="productCode">Product Code *</Label>
+                <Input
+                  id="productCode"
+                  placeholder="Enter product code (e.g., PROD001)"
+                  value={productCode}
+                  onChange={(e) => setProductCode(e.target.value)}
+                />
+                {productCode && !codeLookupEquipment && (
+                  <p className="text-xs text-muted-foreground">Looking up product...</p>
+                )}
+              </div>
+            )}
+
+            {/* Display product details when equipment is found via code */}
+            {codeLookupEquipment && (
+              <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                <div className="font-semibold text-lg">Product Details</div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Name:</span>
+                    <span className="ml-2 font-medium">{codeLookupEquipment.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Code:</span>
+                    <span className="ml-2 font-medium">{codeLookupEquipment.code}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Serial Number:</span>
+                    <span className="ml-2 font-medium">{codeLookupEquipment.serial_number || "—"}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Available Quantity:</span>
+                    <span className="ml-2 font-medium">{codeLookupEquipment.quantity}</span>
+                  </div>
+                  {codeLookupEquipment.purchase_date && (
+                    <div>
+                      <span className="text-muted-foreground">Purchase Date:</span>
+                      <span className="ml-2 font-medium">{new Date(codeLookupEquipment.purchase_date).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {codeLookupEquipment.purchase_price && (
+                    <div>
+                      <span className="text-muted-foreground">Cost:</span>
+                      <span className="ml-2 font-medium">₹{Number(codeLookupEquipment.purchase_price).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {codeLookupEquipment.vendor_name && (
+                    <div>
+                      <span className="text-muted-foreground">Vendor Name:</span>
+                      <span className="ml-2 font-medium">{codeLookupEquipment.vendor_name}</span>
+                    </div>
+                  )}
+                  {codeLookupEquipment.vendor_contact && (
+                    <div>
+                      <span className="text-muted-foreground">Vendor Contact:</span>
+                      <span className="ml-2 font-medium">{codeLookupEquipment.vendor_contact}</span>
+                    </div>
+                  )}
+                  {codeLookupEquipment.vendor_email && (
+                    <div>
+                      <span className="text-muted-foreground">Vendor Email:</span>
+                      <span className="ml-2 font-medium">{codeLookupEquipment.vendor_email}</span>
+                    </div>
+                  )}
+                  {codeLookupEquipment.condition && (
+                    <div>
+                      <span className="text-muted-foreground">Condition:</span>
+                      <span className="ml-2 font-medium capitalize">{codeLookupEquipment.condition.replace("_", " ")}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
           <div className="grid gap-4 md:grid-cols-2">

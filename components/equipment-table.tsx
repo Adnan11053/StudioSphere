@@ -6,12 +6,13 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Download, Edit, Search, Trash2, Upload } from "lucide-react"
+import { Download, Edit, FileText, History, Search, Trash2, Upload } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { downloadCSV, exportEquipmentToCSV } from "@/lib/excel-utils"
+import { EquipmentInvoice } from "@/components/equipment-invoice"
 
 interface EquipmentTableProps {
   equipment: Equipment[]
@@ -24,13 +25,15 @@ export function EquipmentTable({ equipment, categories, userRole, studioId }: Eq
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [invoiceEquipment, setInvoiceEquipment] = useState<Equipment | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.serial_number?.toLowerCase().includes(searchTerm.toLowerCase())
+      item.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.code?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || item.status === statusFilter
     const matchesCategory = categoryFilter === "all" || item.category_id === categoryFilter
 
@@ -85,7 +88,7 @@ export function EquipmentTable({ equipment, categories, userRole, studioId }: Eq
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search equipment..."
+            placeholder="Search by name, code, or serial number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -138,14 +141,14 @@ export function EquipmentTable({ equipment, categories, userRole, studioId }: Eq
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Serial Number</TableHead>
-              <TableHead>Quantity</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Quantity</TableHead>
+              <TableHead>Total Quantity</TableHead>
+              <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Condition</TableHead>
-              <TableHead>Purchase Price</TableHead>
-              {userRole === "owner" && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -158,39 +161,64 @@ export function EquipmentTable({ equipment, categories, userRole, studioId }: Eq
             ) : (
               filteredEquipment.map((item) => (
                 <TableRow key={item.id}>
+                  <TableCell className="font-mono text-sm">{item.code || "—"}</TableCell>
                   <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{item.serial_number || "—"}</TableCell>
-                  <TableCell>{item.quantity || 1}</TableCell>
                   <TableCell>{item.category?.name || "—"}</TableCell>
+                  <TableCell>{item.quantity || 1}</TableCell>
+                  <TableCell>{item.quantity || 1}</TableCell>
+                  <TableCell>{item.purchase_price ? `₹${Number(item.purchase_price).toFixed(2)}` : "—"}</TableCell>
                   <TableCell>
                     <Badge className={getStatusBadge(item.status)}>{item.status}</Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge className={getConditionBadge(item.condition)}>
-                      {item.condition?.replace("_", " ") || "—"}
-                    </Badge>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setInvoiceEquipment(item)}
+                        title="Print Invoice"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        title="View History"
+                      >
+                        <Link href={`/equipment/${item.id}/history`}>
+                          <History className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      {userRole === "owner" && (
+                        <>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/equipment/${item.id}/edit`}>
+                              <Edit className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell>{item.purchase_price ? `₹${Number(item.purchase_price).toFixed(2)}` : "—"}</TableCell>
-                  {userRole === "owner" && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/equipment/${item.id}/edit`}>
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Invoice Dialog */}
+      {invoiceEquipment && (
+        <EquipmentInvoice
+          equipment={invoiceEquipment}
+          open={!!invoiceEquipment}
+          onOpenChange={(open) => !open && setInvoiceEquipment(null)}
+        />
+      )}
     </div>
   )
 }

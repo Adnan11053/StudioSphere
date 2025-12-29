@@ -20,11 +20,15 @@ interface EquipmentFormProps {
 
 export function EquipmentForm({ categories, studioId, equipment }: EquipmentFormProps) {
   const [name, setName] = useState(equipment?.name || "")
+  const [code, setCode] = useState(equipment?.code || "")
   const [serialNumber, setSerialNumber] = useState(equipment?.serial_number || "")
   const [quantity, setQuantity] = useState(equipment?.quantity?.toString() || "1")
   const [categoryId, setCategoryId] = useState(equipment?.category_id || "")
   const [purchaseDate, setPurchaseDate] = useState(equipment?.purchase_date || "")
   const [purchasePrice, setPurchasePrice] = useState(equipment?.purchase_price?.toString() || "")
+  const [vendorName, setVendorName] = useState(equipment?.vendor_name || "")
+  const [vendorContact, setVendorContact] = useState(equipment?.vendor_contact || "")
+  const [vendorEmail, setVendorEmail] = useState(equipment?.vendor_email || "")
   const [condition, setCondition] = useState(equipment?.condition || "excellent")
   const [status, setStatus] = useState(equipment?.status || "available")
   const [notes, setNotes] = useState(equipment?.notes || "")
@@ -74,11 +78,15 @@ export function EquipmentForm({ categories, studioId, equipment }: EquipmentForm
 
     const equipmentData = {
       name,
+      code: code || null,
       serial_number: serialNumber || null,
       quantity: quantity ? Number.parseInt(quantity) : 1,
       category_id: categoryId || null,
       purchase_date: purchaseDate || null,
       purchase_price: purchasePrice ? Number.parseFloat(purchasePrice) : null,
+      vendor_name: vendorName || null,
+      vendor_contact: vendorContact || null,
+      vendor_email: vendorEmail || null,
       condition,
       status,
       notes: notes || null,
@@ -120,6 +128,16 @@ export function EquipmentForm({ categories, studioId, equipment }: EquipmentForm
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="code">Product Code</Label>
+              <Input
+                id="code"
+                placeholder="PROD001"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Unique code for this product (optional)</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="serialNumber">Serial Number</Label>
@@ -193,7 +211,7 @@ export function EquipmentForm({ categories, studioId, equipment }: EquipmentForm
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="purchasePrice">Purchase Price</Label>
+              <Label htmlFor="purchasePrice">Price per Unit</Label>
               <Input
                 id="purchasePrice"
                 type="number"
@@ -202,6 +220,41 @@ export function EquipmentForm({ categories, studioId, equipment }: EquipmentForm
                 value={purchasePrice}
                 onChange={(e) => setPurchasePrice(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">Price for a single product</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="text-sm font-medium">Vendor Information</div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="vendorName">Vendor Name</Label>
+                <Input
+                  id="vendorName"
+                  placeholder="Vendor Company Name"
+                  value={vendorName}
+                  onChange={(e) => setVendorName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vendorContact">Vendor Contact</Label>
+                <Input
+                  id="vendorContact"
+                  placeholder="Phone number"
+                  value={vendorContact}
+                  onChange={(e) => setVendorContact(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vendorEmail">Vendor Email</Label>
+                <Input
+                  id="vendorEmail"
+                  type="email"
+                  placeholder="vendor@example.com"
+                  value={vendorEmail}
+                  onChange={(e) => setVendorEmail(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 

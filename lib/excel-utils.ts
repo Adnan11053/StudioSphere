@@ -3,23 +3,33 @@ import type { Equipment, Issue, Profile } from "./types"
 export function exportEquipmentToCSV(equipment: Equipment[]): string {
   const headers = [
     "Name",
+    "Code",
     "Serial Number",
     "Category",
     "Status",
     "Condition",
     "Purchase Date",
     "Purchase Price",
+    "Vendor Name",
+    "Vendor Contact",
+    "Vendor Email",
+    "Quantity",
     "Notes",
   ]
 
   const rows = equipment.map((item) => [
     item.name,
+    item.code || "",
     item.serial_number || "",
     item.category?.name || "",
     item.status,
     item.condition || "",
     item.purchase_date || "",
     item.purchase_price?.toString() || "",
+    item.vendor_name || "",
+    item.vendor_contact || "",
+    item.vendor_email || "",
+    item.quantity?.toString() || "1",
     item.notes || "",
   ])
 

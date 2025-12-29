@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
-import { BarChart3, FileText, Home, LogOut, Package, Users, Wrench } from "lucide-react"
+import { FileText, Home, LogOut, Package, Users, Wrench } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -65,7 +65,6 @@ export function DashboardSidebar({ userRole, userId, studioId }: DashboardSideba
     issues: permissions?.can_access_issues ?? true,
     employees: permissions?.can_access_employees ?? userRole === "owner",
     reports: permissions?.can_access_reports ?? userRole === "owner",
-    analytics: permissions?.can_access_analytics ?? userRole === "owner",
   }
 
   const navItems = [
@@ -74,7 +73,6 @@ export function DashboardSidebar({ userRole, userId, studioId }: DashboardSideba
     canAccess.issues && { href: "/issues", icon: Wrench, label: "Issued Items" },
     canAccess.employees && { href: "/employees", icon: Users, label: "Employees" },
     canAccess.reports && { href: "/reports", icon: FileText, label: "Reports" },
-    canAccess.analytics && { href: "/analytics", icon: BarChart3, label: "Analytics" },
   ].filter(Boolean) as Array<{ href: string; icon: typeof Home; label: string }>
 
   return (

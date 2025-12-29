@@ -37,11 +37,15 @@ export interface Equipment {
   id: string
   studio_id: string
   name: string
+  code: string | null
   category_id: string | null
   serial_number: string | null
   quantity: number
   purchase_date: string | null
   purchase_price: number | null
+  vendor_name: string | null
+  vendor_contact: string | null
+  vendor_email: string | null
   condition: EquipmentCondition | null
   status: EquipmentStatus
   notes: string | null
