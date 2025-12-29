@@ -145,7 +145,6 @@ export function EquipmentTable({ equipment, categories, userRole, studioId }: Eq
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Quantity</TableHead>
-              <TableHead>Total Quantity</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
