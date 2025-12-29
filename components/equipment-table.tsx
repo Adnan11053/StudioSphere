@@ -164,7 +164,6 @@ export function EquipmentTable({ equipment, categories, userRole, studioId }: Eq
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{item.category?.name || "—"}</TableCell>
                   <TableCell>{item.quantity || 1}</TableCell>
-                  <TableCell>{item.quantity || 1}</TableCell>
                   <TableCell>{item.purchase_price ? `₹${Number(item.purchase_price).toFixed(2)}` : "—"}</TableCell>
                   <TableCell>
                     <Badge className={getStatusBadge(item.status)}>{item.status}</Badge>
